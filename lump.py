@@ -115,3 +115,7 @@ if st.button("Calculate"):
         file_name='required_initial_investment_by_allocation.csv',
         mime='text/csv'
     )
+
+import streamlit as st
+
+st.markdown('[Click here to go to Google](https://www.google.com)')
