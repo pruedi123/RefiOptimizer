@@ -189,8 +189,18 @@ results = compare_refi_scenarios(
     current_payment=cur_payment
 )
 
-baseline = results.loc[results["Option"] == "Keep Current"].iloc[0]
 summary = results.copy()
+
+if "Side 75th @H" not in summary.columns:
+    summary["Side 75th @H"] = summary["Side @H"]
+if "Side Min @H" not in summary.columns:
+    summary["Side Min @H"] = summary["Side @H"]
+if "Net Worth 75th @H" not in summary.columns:
+    summary["Net Worth 75th @H"] = summary["Net Worth @H"]
+if "Net Worth Min @H" not in summary.columns:
+    summary["Net Worth Min @H"] = summary["Net Worth @H"]
+
+baseline = summary.loc[summary["Option"] == "Keep Current"].iloc[0]
 summary["Monthly Payment Change ($)"] = summary["Monthly Payment"] - baseline["Monthly Payment"]
 summary["Net Worth Change vs Current ($)"] = summary["Net Worth @H"] - baseline["Net Worth @H"]
 summary["Net Worth 75th Change vs Current ($)"] = summary["Net Worth 75th @H"] - baseline["Net Worth 75th @H"]
