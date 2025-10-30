@@ -44,7 +44,7 @@ cur_payment = st.sidebar.number_input(
     help="Monthly principal & interest you currently pay. Defaults to the scheduled payment."
 )
 
-st.sidebar.header("Horizon & PMI")
+st.sidebar.header("Horizon to Look at & PMI Inputs")
 horizon = st.sidebar.slider("Analysis horizon (months)", min_value=1, max_value=480, value=360, step=1)
 pmi_rate = st.sidebar.slider("PMI annual rate (e.g., 0.7% as 0.7)", min_value=0.0, max_value=10.0, value=0.7, step=0.05) / 100.0
 cancel_rule = st.sidebar.selectbox("PMI cancel rule", ["78", "80", "FHA_life"])
