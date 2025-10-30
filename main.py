@@ -129,17 +129,19 @@ for opt in base_options:
     })
     st.sidebar.divider()
 
-apply_savings = st.sidebar.checkbox(
-    "Apply payment savings to principal",
-    value=False,
-    help="If a refi lowers the required payment, keep paying the current amount and send the savings to extra principal."
+savings_mode = st.sidebar.radio(
+    "How should payment savings be used?",
+    options=[
+        "Keep savings as cash",
+        "Apply savings to principal",
+        "Invest savings monthly"
+    ],
+    index=0,
+    help="Choose one action; applying to principal and investing are mutually exclusive."
 )
 
-invest_savings = st.sidebar.checkbox(
-    "Invest payment savings",
-    value=False,
-    help="Direct any monthly savings into the selected portfolio once per month."
-)
+apply_savings = savings_mode == "Apply savings to principal"
+invest_savings = savings_mode == "Invest savings monthly"
 
 fee_drag_pct = st.sidebar.slider(
     "Annual investment fee drag (%)",
@@ -162,7 +164,7 @@ current = {
     "cancel_rule": cancel_rule
 }
 
-st.write("🔧 Tip: use the sidebar toggles to apply payment savings to principal or invest them in a chosen portfolio.")
+st.write("🔧 Tip: use the savings mode selector to either keep, prepay, or invest payment savings.")
 results = compare_refi_scenarios(
     current=current,
     options=options,
