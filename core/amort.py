@@ -2,17 +2,20 @@
 import numpy as np
 import pandas as pd
 
-def amort_schedule(principal, annual_rate, term_months, extra_fn=lambda t: 0.0):
+def amort_schedule(principal, annual_rate, term_months, extra_fn=lambda t: 0.0, payment=None):
     """Generate an amortization DataFrame for fixed-rate loans.
 
     Returns columns: Month, Payment, Interest, Principal, Extra, Balance
     """
     r = annual_rate / 12.0
-    if r == 0:
-        pmt = principal / term_months
+    if payment is None:
+        if r == 0:
+            pmt = principal / term_months
+        else:
+            # numpy financial pmt replacement
+            pmt = (r * principal) / (1 - (1 + r) ** (-term_months))
     else:
-        # numpy financial pmt replacement
-        pmt = (r * principal) / (1 - (1 + r) ** (-term_months))
+        pmt = float(payment)
 
     bal = principal
     rows = []

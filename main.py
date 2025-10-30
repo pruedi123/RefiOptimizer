@@ -6,11 +6,30 @@ from core.factors import prepare_portfolio_factors
 st.set_page_config(page_title="Refinance Optimizer", layout="wide", initial_sidebar_state="expanded")
 st.title("Refinance Optimizer (Starter)")
 
+def _monthly_payment(principal: float, annual_rate: float, term_months: int) -> float:
+    if term_months <= 0:
+        return 0.0
+    r = annual_rate / 12.0
+    if r == 0:
+        return principal / term_months
+    return (r * principal) / (1 - (1 + r) ** (-term_months))
+
 st.sidebar.header("Current Loan")
 cur_balance = st.sidebar.slider("Current balance ($)", min_value=0.0, max_value=2000000.0, value=700000.0, step=1000.0)
 cur_rate = st.sidebar.slider("Current rate (APR, %)", min_value=0.0, max_value=20.0, value=8.55, step=0.01) / 100.0
 cur_term = st.sidebar.slider("Remaining term (months)", min_value=1, max_value=480, value=360, step=1)
 home_value = st.sidebar.slider("Home value ($)", min_value=0.0, max_value=5000000.0, value=875000.0, step=1000.0)
+
+default_cur_payment = _monthly_payment(cur_balance, cur_rate, int(cur_term))
+cur_payment = st.sidebar.number_input(
+    "Current monthly payment ($)",
+    min_value=0.0,
+    max_value=50000.0,
+    value=float(round(default_cur_payment, 2)),
+    step=10.0,
+    format="%.2f",
+    help="Monthly principal & interest you currently pay. Defaults to the scheduled payment."
+)
 
 st.sidebar.header("Horizon & PMI")
 horizon = st.sidebar.slider("Analysis horizon (months)", min_value=1, max_value=480, value=120, step=1)
@@ -151,7 +170,8 @@ results = compare_refi_scenarios(
     horizon_months=int(horizon),
     keep_payment=apply_savings,
     invest_savings=invest_savings,
-    fee_drag=fee_drag
+    fee_drag=fee_drag,
+    current_payment=cur_payment
 )
 
 baseline = results.loc[results["Option"] == "Keep Current"].iloc[0]

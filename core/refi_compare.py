@@ -13,6 +13,7 @@ def compare_refi_scenarios(
     keep_payment=False,
     invest_savings=False,
     fee_drag=0.0,
+    current_payment=None,
 ):
     """Skeleton comparator that you can expand.
 
@@ -22,11 +23,16 @@ def compare_refi_scenarios(
     keep_payment: if True, apply any payment savings versus the current loan as extra principal
     invest_savings: if True, invest monthly savings according to option.portfolio
     fee_drag: annual fee drag (decimal) applied to investment returns
+    current_payment: optional override for the current loan's monthly payment (principal & interest)
     """
     fee_drag = float(fee_drag or 0.0)
     if fee_drag < 0.0:
         fee_drag = 0.0
     fee_drag = min(fee_drag, 1.0)
+    if current_payment is not None:
+        current_payment = float(current_payment)
+        if current_payment <= 0.0:
+            current_payment = None
 
     def pad_schedule(schedule, horizon):
         if len(schedule) >= horizon:
@@ -78,7 +84,12 @@ def compare_refi_scenarios(
 
     results = []
     # Baseline schedule (keep current loan as-is)
-    sched_cur = amort_schedule(current["balance"], current["rate"], int(current["remaining_term"]))
+    sched_cur = amort_schedule(
+        current["balance"],
+        current["rate"],
+        int(current["remaining_term"]),
+        payment=current_payment
+    )
     sched_cur = pad_schedule(sched_cur, horizon_months)
     hv = home_value_path(current["home_value"], current["home_appreciation"], horizon_months)
     pmi_cur = pmi_stream(sched_cur["Balance"].values, hv.values, current["pmi_rate"], current["pmi_basis"], current["cancel_rule"])
