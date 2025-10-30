@@ -136,7 +136,7 @@ savings_mode = st.sidebar.radio(
         "Apply savings to principal",
         "Invest savings monthly"
     ],
-    index=0,
+    index=2,
     help="Choose one action; applying to principal and investing are mutually exclusive."
 )
 
