@@ -45,7 +45,7 @@ cur_payment = st.sidebar.number_input(
 )
 
 st.sidebar.header("Horizon & PMI")
-horizon = st.sidebar.slider("Analysis horizon (months)", min_value=1, max_value=480, value=120, step=1)
+horizon = st.sidebar.slider("Analysis horizon (months)", min_value=1, max_value=480, value=360, step=1)
 pmi_rate = st.sidebar.slider("PMI annual rate (e.g., 0.7% as 0.7)", min_value=0.0, max_value=10.0, value=0.7, step=0.05) / 100.0
 cancel_rule = st.sidebar.selectbox("PMI cancel rule", ["78", "80", "FHA_life"])
 pmi_basis = st.sidebar.selectbox("PMI basis", ["original", "current"])
@@ -149,7 +149,7 @@ savings_mode = st.sidebar.radio(
         "Apply savings to principal",
         "Invest savings monthly"
     ],
-    index=0,
+    index=2,
     help="Choose one action; applying to principal and investing are mutually exclusive."
 )
 
@@ -167,7 +167,7 @@ fee_drag_pct = st.sidebar.slider(
     "Annual investment fee drag (%)",
     min_value=0.0,
     max_value=1.0,
-    value=0.0,
+    value=0.20,
     step=0.05,
     help="Reduces side-portfolio returns to account for advisory or fund fees.",
 )
