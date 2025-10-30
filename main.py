@@ -45,9 +45,26 @@ cur_payment = st.sidebar.number_input(
 )
 
 st.sidebar.header("Horizon to Look at & PMI Inputs")
-horizon = st.sidebar.slider("Analysis horizon (months)", min_value=1, max_value=480, value=360, step=1)
-pmi_rate = st.sidebar.slider("PMI annual rate (e.g., 0.7% as 0.7)", min_value=0.0, max_value=10.0, value=0.7, step=0.05) / 100.0
-cancel_rule = st.sidebar.selectbox("PMI cancel rule", ["78", "80", "FHA_life"])
+horizon = st.sidebar.slider(
+    "Analysis horizon (months)",
+    min_value=1,
+    max_value=480,
+    value=360,
+    step=1,
+    help="Choose how many months ahead to compare outcomes—the summary table reports results at this horizon."
+)
+pmi_rate = st.sidebar.slider(
+    "PMI annual rate (e.g., 0.7% as 0.7)",
+    min_value=0.0,
+    max_value=10.0,
+    value=0.7,
+    step=0.05
+) / 100.0
+cancel_rule = st.sidebar.selectbox(
+    "PMI cancel rule",
+    ["78", "80", "FHA_life"],
+    help="Sets the LTV trigger where PMI ends: 78% or 80% of the original value, or FHA_life to keep PMI for the entire term."
+)
 pmi_basis = st.sidebar.selectbox("PMI basis", ["original", "current"])
 appr = st.sidebar.slider("Home appreciation (%/yr)", min_value=-50.0, max_value=50.0, value=3.0, step=0.5) / 100.0
 
