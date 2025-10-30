@@ -41,7 +41,7 @@ appr = st.sidebar.slider("Home appreciation (%/yr)", min_value=-50.0, max_value=
 st.sidebar.header("Options")
 st.sidebar.markdown("Add two sample options below. (Edit in code or enhance UI later.)")
 base_options = [
-    {"name":"Offer 1","rate":0.0646,"term":360,"fees":0.0,"points":0.0,"finance_fees":True, "portfolio":"global_60e"},
+    {"name":"Offer 1","rate":0.0646,"term":360,"fees":0.0,"points":0.0,"finance_fees":False, "portfolio":"global_60e"},
     {"name":"Offer 2","rate":0.0615,"term":360,"fees":5000.0,"points":0.0,"finance_fees":False,"portfolio":"spx_60e"}
 ]
 
@@ -79,7 +79,7 @@ portfolio_choices = list(portfolio_map.keys())
 allocation_choice = st.sidebar.selectbox(
     "Invest savings into",
     options=portfolio_choices,
-    index=portfolio_choices.index("Global 60/40")
+    index=portfolio_choices.index("Global 100/0")
 )
 allocation_key = portfolio_map[allocation_choice]
 
