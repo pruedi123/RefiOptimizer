@@ -1,8 +1,8 @@
 
+import numpy as np
 import pandas as pd
 from .amort import amort_schedule
 from .pmi import pmi_stream
-from .invest import side_portfolio
 from .utils import home_value_path
 
 def compare_refi_scenarios(
@@ -21,7 +21,7 @@ def compare_refi_scenarios(
     options: list of dicts with keys name, rate, term, fees, points, finance_fees, portfolio
     factors: placeholder (wire your factor series here per option.portfolio)
     keep_payment: if True, apply any payment savings versus the current loan as extra principal
-    invest_savings: if True, invest monthly savings according to option.portfolio
+    invest_savings: if True, invest monthly savings according to option.portfolio using rolling annual factor paths
     fee_drag: annual fee drag (decimal) applied to investment returns
     current_payment: optional override for the current loan's monthly payment (principal & interest)
     """
@@ -33,6 +33,78 @@ def compare_refi_scenarios(
         current_payment = float(current_payment)
         if current_payment <= 0.0:
             current_payment = None
+
+    def years_from_months(months: int) -> int:
+        if months <= 0:
+            return 0
+        return (months + 11) // 12
+
+    def build_annual_contributions(monthly_values, years_required):
+        annual = []
+        for year in range(years_required):
+            start = year * 12
+            end = min(start + 12, len(monthly_values))
+            if start >= len(monthly_values):
+                annual.append(0.0)
+            else:
+                annual.append(float(sum(monthly_values[start:end])))
+        return annual
+
+    def build_annual_factor_paths(portfolio_key, years_required):
+        if years_required <= 0 or not invest_savings or not factors:
+            return []
+
+        portfolios = factors.get("portfolios", {})
+        geo = factors.get("portfolio_cagr", {})
+        series = portfolios.get(portfolio_key)
+        fee_multiplier = max(0.0, 1.0 - fee_drag)
+
+        if series is None or len(series) == 0:
+            fallback = float(geo.get(portfolio_key, 1.0) or 1.0)
+            if not np.isfinite(fallback) or fallback <= 0.0:
+                fallback = 1.0
+            return [[fallback * fee_multiplier] * years_required]
+
+        series = series.astype(float)
+        max_start = len(series) - (years_required - 1) * 12
+        paths = []
+        for start in range(max(0, max_start)):
+            path = []
+            for step in range(years_required):
+                idx = start + step * 12
+                if idx >= len(series):
+                    break
+                factor = float(series.iloc[idx])
+                if not np.isfinite(factor) or factor <= 0.0:
+                    factor = 1.0
+                path.append(factor * fee_multiplier)
+            if len(path) == years_required:
+                paths.append(path)
+
+        if not paths:
+            fallback = float(geo.get(portfolio_key, 1.0) or 1.0)
+            if not np.isfinite(fallback) or fallback <= 0.0:
+                fallback = 1.0
+            paths.append([fallback * fee_multiplier] * years_required)
+        return paths
+
+    def grow_side_value_paths(side0, annual_contribs, factor_paths):
+        if not factor_paths:
+            return [float(side0)]
+
+        values = []
+        for factors in factor_paths:
+            v = float(side0)
+            for year, factor in enumerate(factors):
+                contrib = annual_contribs[year] if year < len(annual_contribs) else 0.0
+                v += contrib
+                v *= factor
+            # Handle any residual contributions beyond the final factor year.
+            if len(annual_contribs) > len(factors):
+                for year in range(len(factors), len(annual_contribs)):
+                    v += annual_contribs[year]
+            values.append(v)
+        return values
 
     def pad_schedule(schedule, horizon):
         if len(schedule) >= horizon:
@@ -56,31 +128,6 @@ def compare_refi_scenarios(
             pad_df = pd.DataFrame(padding, columns=schedule.columns)
             schedule = pd.concat([schedule, pad_df], ignore_index=True)
         return schedule.iloc[:horizon].copy()
-
-    def build_monthly_factors(portfolio_key, months):
-        if not invest_savings or not factors:
-            return [1.0] * months
-
-        portfolios = factors.get("portfolios", {})
-        geo = factors.get("portfolio_cagr", {})
-        series = portfolios.get(portfolio_key)
-        monthly = []
-        idx = 0
-        fee_adjust = (1.0 - fee_drag) ** (1.0 / 12.0) if fee_drag > 0.0 else 1.0
-        while len(monthly) < months:
-            if series is not None and idx < len(series):
-                annual_factor = float(series.iloc[idx])
-            else:
-                annual_factor = float(geo.get(portfolio_key, 1.0))
-            idx += 1
-            if annual_factor <= 0.0:
-                gross_monthly = 1.0
-            else:
-                gross_monthly = annual_factor ** (1.0 / 12.0)
-            monthly_factor = gross_monthly * fee_adjust
-            months_to_add = min(12, months - len(monthly))
-            monthly.extend([monthly_factor] * months_to_add)
-        return monthly[:months]
 
     results = []
     # Baseline schedule (keep current loan as-is)
@@ -108,7 +155,11 @@ def compare_refi_scenarios(
         "Cash Savings @H": float(cash_delta_cur),
         "Equity @H": float(equity_cur),
         "Side @H": float(side_cur),
+        "Side 75th @H": float(side_cur),
+        "Side Min @H": float(side_cur),
         "Net Worth @H": float(networth_cur),
+        "Net Worth 75th @H": float(networth_cur),
+        "Net Worth Min @H": float(networth_cur),
     })
 
     # Pre-calc fee info for investment and financing logic
@@ -165,16 +216,30 @@ def compare_refi_scenarios(
         if invest_savings:
             side0 = max(0.0, max_cash_needed - cash_needed)
         cash_delta = float(total_cur - total_cash)
+        years_needed = years_from_months(horizon_months)
         if invest_savings:
-            monthly_actual = sched["Payment"] + sched["Extra"]
-            monthly_savings = (base_payment - monthly_actual).tolist()
-            monthly_factors = build_monthly_factors(opt.get("portfolio"), len(monthly_savings))
-            side_series = side_portfolio(side0, monthly_savings, monthly_factors)
-            side = float(side_series.iloc[-1]) if len(side_series) else float(side0)
+            monthly_actual = (sched["Payment"] + sched["Extra"]).tolist()
+            monthly_savings = [float(base_payment - val) for val in monthly_actual]
+            annual_contribs = build_annual_contributions(monthly_savings, years_needed)
+            factor_paths = build_annual_factor_paths(opt.get("portfolio"), years_needed)
+            side_values = grow_side_value_paths(side0, annual_contribs, factor_paths)
         else:
-            side = float(side0)
+            side_values = [float(side0)]
+
+        side_array = np.array(side_values, dtype=float)
+        side_median = float(np.median(side_array))
+        side_p75 = float(np.percentile(side_array, 75))
+        side_min = float(np.min(side_array))
+
         cash_effect = 0.0 if invest_savings else cash_delta
-        networth = float(equity + side + cash_effect - (0.0 if finance else fees_amt))
+        networth_values = [
+            float(equity + side_val + cash_effect - (0.0 if finance else fees_amt))
+            for side_val in side_array
+        ]
+        networth_array = np.array(networth_values, dtype=float)
+        networth_median = float(np.median(networth_array))
+        networth_p75 = float(np.percentile(networth_array, 75))
+        networth_min = float(np.min(networth_array))
 
         results.append({
             "Option": opt["name"],
@@ -183,8 +248,12 @@ def compare_refi_scenarios(
             "Total Cash Out (H)": total_cash,
             "Cash Savings @H": cash_delta,
             "Equity @H": float(equity),
-            "Side @H": float(side),
-            "Net Worth @H": float(networth),
+            "Side @H": side_median,
+            "Side 75th @H": side_p75,
+            "Side Min @H": side_min,
+            "Net Worth @H": networth_median,
+            "Net Worth 75th @H": networth_p75,
+            "Net Worth Min @H": networth_min,
         })
 
     return pd.DataFrame(results)

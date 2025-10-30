@@ -147,9 +147,9 @@ savings_mode = st.sidebar.radio(
     options=[
         "Keep savings as cash",
         "Apply savings to principal",
-        "Invest savings monthly"
-    ],
-    index=2,
+    "Invest savings monthly"
+],
+    index=0,
     help="Choose one action; applying to principal and investing are mutually exclusive."
 )
 
@@ -160,7 +160,7 @@ fee_drag_pct = st.sidebar.slider(
     "Annual investment fee drag (%)",
     min_value=0.0,
     max_value=1.0,
-    value=0.20,
+    value=0.0,
     step=0.05,
     help="Reduces side-portfolio returns to account for advisory or fund fees.",
 )
@@ -193,6 +193,8 @@ baseline = results.loc[results["Option"] == "Keep Current"].iloc[0]
 summary = results.copy()
 summary["Monthly Payment Change ($)"] = summary["Monthly Payment"] - baseline["Monthly Payment"]
 summary["Net Worth Change vs Current ($)"] = summary["Net Worth @H"] - baseline["Net Worth @H"]
+summary["Net Worth 75th Change vs Current ($)"] = summary["Net Worth 75th @H"] - baseline["Net Worth 75th @H"]
+summary["Net Worth Min Change vs Current ($)"] = summary["Net Worth Min @H"] - baseline["Net Worth Min @H"]
 
 summary = summary[[
     "Option",
@@ -202,17 +204,29 @@ summary = summary[[
     "Total Cash Out (H)",
     "Cash Savings @H",
     "Side @H",
+    "Side 75th @H",
+    "Side Min @H",
     "Net Worth @H",
-    "Net Worth Change vs Current ($)"
+    "Net Worth 75th @H",
+    "Net Worth Min @H",
+    "Net Worth Change vs Current ($)",
+    "Net Worth 75th Change vs Current ($)",
+    "Net Worth Min Change vs Current ($)"
 ]].rename(columns={
     "Monthly Payment": "Monthly Payment ($/mo)",
     "Monthly Payment Change ($)": "Change vs Current ($/mo)",
     "PMI First Mo": "PMI First Month ($)",
     "Total Cash Out (H)": "Total Paid to Horizon ($)",
     "Cash Savings @H": "Cash Saved vs Current ($)",
-    "Side @H": "Invested Balance ($)",
-    "Net Worth @H": "Net Worth at Horizon ($)",
-    "Net Worth Change vs Current ($)": "Net Worth Change vs Current ($)"
+    "Side @H": "Invested Balance Median ($)",
+    "Side 75th @H": "Invested Balance 75th ($)",
+    "Side Min @H": "Invested Balance Min ($)",
+    "Net Worth @H": "Net Worth Median ($)",
+    "Net Worth 75th @H": "Net Worth 75th ($)",
+    "Net Worth Min @H": "Net Worth Min ($)",
+    "Net Worth Change vs Current ($)": "Net Worth Median Change vs Current ($)",
+    "Net Worth 75th Change vs Current ($)": "Net Worth 75th Change vs Current ($)",
+    "Net Worth Min Change vs Current ($)": "Net Worth Min Change vs Current ($)",
 })
 
 fmt = {
@@ -221,18 +235,24 @@ fmt = {
     "PMI First Month ($)": "${:,.0f}",
     "Total Paid to Horizon ($)": "${:,.0f}",
     "Cash Saved vs Current ($)": "${:,.0f}",
-    "Invested Balance ($)": "${:,.0f}",
-    "Net Worth at Horizon ($)": "${:,.0f}",
-    "Net Worth Change vs Current ($)": "${:,.0f}",
+    "Invested Balance Median ($)": "${:,.0f}",
+    "Invested Balance 75th ($)": "${:,.0f}",
+    "Invested Balance Min ($)": "${:,.0f}",
+    "Net Worth Median ($)": "${:,.0f}",
+    "Net Worth 75th ($)": "${:,.0f}",
+    "Net Worth Min ($)": "${:,.0f}",
+    "Net Worth Median Change vs Current ($)": "${:,.0f}",
+    "Net Worth 75th Change vs Current ($)": "${:,.0f}",
+    "Net Worth Min Change vs Current ($)": "${:,.0f}",
 }
 
-best_option = summary.sort_values("Net Worth at Horizon ($)", ascending=False).iloc[0]
+best_option = summary.sort_values("Net Worth Median ($)", ascending=False).iloc[0]
 if best_option["Option"] == "Keep Current":
     st.info("Keeping the current loan leads to the highest net worth at your analysis horizon.")
 else:
     st.success(
         f"**{best_option['Option']}** builds the most wealth by your horizon "
-        f"({fmt['Net Worth Change vs Current ($)'].format(best_option['Net Worth Change vs Current ($)'])} "
+        f"({fmt['Net Worth Median Change vs Current ($)'].format(best_option['Net Worth Median Change vs Current ($)'])} "
         "more than keeping the current loan)."
     )
 
@@ -242,8 +262,8 @@ st.markdown(
     "- **Change vs Current**: negative numbers mean you pay less than today.\n"
     "- **PMI First Month**: private mortgage insurance due in month one under that option.\n"
     "- **Cash Saved vs Current**: total dollars you still have because you paid less than the current loan.\n"
-    "- **Invested Balance**: value of the side account built from payment savings (zero if you keep the cash).\n"
-    "- **Net Worth Change**: how much richer or poorer you are at the horizon after accounting for equity, fees, and saved cash."
+    "- **Invested Balance Median/75th/Min**: distribution of the side account built from payment savings (zero if you keep the cash).\n"
+    "- **Net Worth Median/75th/Min**: distribution of total wealth at the horizon after equity, fees, and saved cash, plus the change columns versus keeping the current loan."
 )
 
 st.dataframe(summary.style.format(fmt), use_container_width=True)
@@ -256,11 +276,11 @@ def option_by_name(name: str):
 
 if best_option["Option"] != "Keep Current":
     competitor_row = summary[summary["Option"] != best_option["Option"]].sort_values(
-        "Net Worth at Horizon ($)", ascending=False
+        "Net Worth Median ($)", ascending=False
     ).iloc[0]
     target_name = best_option["Option"]
     target_opt = option_by_name(target_name)
-    competitor_value = competitor_row["Net Worth at Horizon ($)"]
+    competitor_value = competitor_row["Net Worth Median ($)"]
 
     def evaluate_networth_with_fee(candidate_fee: float):
         modified = []
@@ -276,7 +296,9 @@ if best_option["Option"] != "Keep Current":
             factors=factor_data,
             horizon_months=int(horizon),
             keep_payment=apply_savings,
-            invest_savings=invest_savings
+            invest_savings=invest_savings,
+            fee_drag=fee_drag,
+            current_payment=cur_payment
         )
         return df.loc[df["Option"] == target_name, "Net Worth @H"].iloc[0]
 
@@ -285,7 +307,7 @@ if best_option["Option"] != "Keep Current":
             st.warning("Could not locate the preferred offer details.")
         else:
             current_fee = float(target_opt.get("fees", 0.0))
-            current_networth = float(best_option["Net Worth at Horizon ($)"])
+            current_networth = float(best_option["Net Worth Median ($)"])
 
             if current_networth <= competitor_value + 1e-6:
                 st.info("Preferred option is already no better than the alternative; adjust fees directly.")
