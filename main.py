@@ -16,6 +16,8 @@ st.markdown(
     3. Adjust each **Offer** to match lender quotes, including points, closing costs, and whether those costs are financed.
     4. Choose how to handle payment savings—keep them as cash, prepay principal, or invest—and optionally apply an annual fee drag.
     5. Review the comparison table and highlights to see which path builds the most net worth by your horizon.
+
+    _Note: Home values automatically follow CPI inflation and PMI premiums are calculated on the current loan balance._
     """
 )
 
@@ -58,15 +60,15 @@ pmi_rate = st.sidebar.slider(
     min_value=0.0,
     max_value=10.0,
     value=0.7,
-    step=0.05
+    step=0.05,
+    help="Enter the annual PMI rate expressed as a percentage (0.7 means 0.7% per year)."
 ) / 100.0
 cancel_rule = st.sidebar.selectbox(
     "PMI cancel rule",
     ["78", "80", "FHA_life"],
     help="Sets the LTV trigger where PMI ends: 78% or 80% of the original value, or FHA_life to keep PMI for the entire term."
 )
-pmi_basis = st.sidebar.selectbox("PMI basis", ["original", "current"])
-appr = st.sidebar.slider("Home appreciation (%/yr)", min_value=-50.0, max_value=50.0, value=3.0, step=0.5) / 100.0
+st.sidebar.caption("Home value projections follow CPI inflation and PMI premiums use the current loan balance as the base.")
 
 st.sidebar.header("Options")
 # Add twost.sidebar.markdown(" sample options below. (Edit in code or enhance UI later.)")
@@ -166,7 +168,7 @@ savings_mode = st.sidebar.radio(
         "Apply savings to principal",
         "Invest savings monthly"
     ],
-    index=2,
+    index=0,
     help="Choose one action; applying to principal and investing are mutually exclusive."
 )
 
@@ -184,7 +186,7 @@ fee_drag_pct = st.sidebar.slider(
     "Annual investment fee drag (%)",
     min_value=0.0,
     max_value=1.0,
-    value=0.20,
+    value=0.0,
     step=0.05,
     help="Reduces side-portfolio returns to account for advisory or fund fees.",
 )
@@ -195,9 +197,9 @@ current = {
     "rate": cur_rate,
     "remaining_term": int(cur_term),
     "home_value": home_value,
-    "home_appreciation": appr,
     "pmi_rate": pmi_rate,
-    "pmi_basis": pmi_basis,
+    "pmi_basis": "current",
+    "home_appreciation": 0.0,
     "cancel_rule": cancel_rule
 }
 

@@ -34,6 +34,13 @@ def compare_refi_scenarios(
         if current_payment <= 0.0:
             current_payment = None
 
+    base_home_value = float(current.get("home_value", 0.0))
+    home_appreciation = float(current.get("home_appreciation", 0.0) or 0.0)
+    pmi_basis = current.get("pmi_basis", "current")
+    fallback_monthly_factor = (1.0 + home_appreciation) ** (1.0 / 12.0) if home_appreciation else 1.0
+    if not np.isfinite(fallback_monthly_factor) or fallback_monthly_factor <= 0.0:
+        fallback_monthly_factor = 1.0
+
     def years_from_months(months: int) -> int:
         if months <= 0:
             return 0
@@ -106,6 +113,35 @@ def compare_refi_scenarios(
             values.append(v)
         return values
 
+    def build_home_value_path(months: int):
+        if months <= 0:
+            return home_value_path(base_home_value, home_appreciation, 1)
+
+        cpi_factors = None
+        if factors:
+            cpi_monthly = factors.get("cpi_monthly")
+            if cpi_monthly is not None and "CPI_Factor_Month" in cpi_monthly.columns:
+                series = cpi_monthly["CPI_Factor_Month"].dropna().astype(float)
+                if len(series) > 0:
+                    cpi_factors = []
+                    last_valid = fallback_monthly_factor
+                    for i in range(months - 1):
+                        if i < len(series):
+                            factor = float(series.iloc[i])
+                        else:
+                            factor = last_valid
+                        if not np.isfinite(factor) or factor <= 0.0:
+                            factor = last_valid
+                        cpi_factors.append(factor)
+                        last_valid = factor
+
+        return home_value_path(
+            base_home_value,
+            home_appreciation,
+            months,
+            monthly_factors=cpi_factors
+        )
+
     def pad_schedule(schedule, horizon):
         if len(schedule) >= horizon:
             return schedule.iloc[:horizon].copy()
@@ -138,8 +174,9 @@ def compare_refi_scenarios(
         payment=current_payment
     )
     sched_cur = pad_schedule(sched_cur, horizon_months)
-    hv = home_value_path(current["home_value"], current["home_appreciation"], horizon_months)
-    pmi_cur = pmi_stream(sched_cur["Balance"].values, hv.values, current["pmi_rate"], current["pmi_basis"], current["cancel_rule"])
+    home_values = build_home_value_path(horizon_months)
+    hv = home_values
+    pmi_cur = pmi_stream(sched_cur["Balance"].values, hv.values, current["pmi_rate"], pmi_basis, current["cancel_rule"])
     total_cur = (sched_cur["Payment"] + sched_cur["Extra"]).sum() + pmi_cur.sum()
     equity_cur = hv.iloc[-1] - sched_cur.iloc[-1]["Balance"]
     side_cur = 0.0  # no side portfolio in baseline by default
@@ -206,8 +243,8 @@ def compare_refi_scenarios(
 
         sched = pad_schedule(sched, horizon_months)
 
-        hv_opt = home_value_path(current["home_value"], current["home_appreciation"], horizon_months)
-        pmi_opt = pmi_stream(sched["Balance"].values, hv_opt.values, current["pmi_rate"], current["pmi_basis"], current["cancel_rule"])
+        hv_opt = home_values
+        pmi_opt = pmi_stream(sched["Balance"].values, hv_opt.values, current["pmi_rate"], pmi_basis, current["cancel_rule"])
 
         total_cash = (sched["Payment"] + sched["Extra"]).sum() + pmi_opt.sum()
         equity = hv_opt.iloc[-1] - sched.iloc[-1]["Balance"]
