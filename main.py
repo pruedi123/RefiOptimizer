@@ -6,6 +6,17 @@ from core.factors import prepare_portfolio_factors
 st.set_page_config(page_title="Refinance Optimizer", layout="wide", initial_sidebar_state="expanded")
 st.title("Refinance Optimizer (Starter)")
 
+st.markdown(
+    """
+    Use this dashboard to benchmark refinance offers against your current mortgage.
+    1. Update the **Current Loan** panel with your outstanding balance, rate, term, and actual monthly payment.
+    2. Set the analysis horizon, PMI rules, and the portfolio you would use if investing payment savings.
+    3. Adjust each **Offer** to match lender quotes, including points, closing costs, and whether those costs are financed.
+    4. Choose how to handle payment savings—keep them as cash, prepay principal, or invest—and optionally apply an annual fee drag.
+    5. Review the comparison table and highlights to see which path builds the most net worth by your horizon.
+    """
+)
+
 def _monthly_payment(principal: float, annual_rate: float, term_months: int) -> float:
     if term_months <= 0:
         return 0.0
