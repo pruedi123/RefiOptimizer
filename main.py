@@ -147,14 +147,21 @@ savings_mode = st.sidebar.radio(
     options=[
         "Keep savings as cash",
         "Apply savings to principal",
-    "Invest savings monthly"
-],
+        "Invest savings monthly"
+    ],
     index=0,
     help="Choose one action; applying to principal and investing are mutually exclusive."
 )
 
 apply_savings = savings_mode == "Apply savings to principal"
 invest_savings = savings_mode == "Invest savings monthly"
+
+metric_choice = st.sidebar.radio(
+    "Optimize for",
+    options=["Median net worth", "Minimum net worth"],
+    index=0,
+    help="Pick the net-worth percentile used to rank scenarios and solve break-even fees."
+)
 
 fee_drag_pct = st.sidebar.slider(
     "Annual investment fee drag (%)",
@@ -256,13 +263,33 @@ fmt = {
     "Net Worth Min Change vs Current ($)": "${:,.0f}",
 }
 
-best_option = summary.sort_values("Net Worth Median ($)", ascending=False).iloc[0]
+metric_map = {
+    "Median net worth": {
+        "summary_col": "Net Worth Median ($)",
+        "change_col": "Net Worth Median Change vs Current ($)",
+        "raw_col": "Net Worth @H",
+        "label": "median"
+    },
+    "Minimum net worth": {
+        "summary_col": "Net Worth Min ($)",
+        "change_col": "Net Worth Min Change vs Current ($)",
+        "raw_col": "Net Worth Min @H",
+        "label": "minimum"
+    },
+}
+metric_info = metric_map.get(metric_choice, metric_map["Median net worth"])
+rank_col = metric_info["summary_col"]
+change_col = metric_info["change_col"]
+raw_col = metric_info["raw_col"]
+metric_label = metric_info["label"]
+
+best_option = summary.sort_values(rank_col, ascending=False).iloc[0]
 if best_option["Option"] == "Keep Current":
     st.info("Keeping the current loan leads to the highest net worth at your analysis horizon.")
 else:
     st.success(
-        f"**{best_option['Option']}** builds the most wealth by your horizon "
-        f"({fmt['Net Worth Median Change vs Current ($)'].format(best_option['Net Worth Median Change vs Current ($)'])} "
+        f"**{best_option['Option']}** delivers the strongest {metric_label} net worth by your horizon "
+        f"({fmt[change_col].format(best_option[change_col])} "
         "more than keeping the current loan)."
     )
 
@@ -286,11 +313,11 @@ def option_by_name(name: str):
 
 if best_option["Option"] != "Keep Current":
     competitor_row = summary[summary["Option"] != best_option["Option"]].sort_values(
-        "Net Worth Median ($)", ascending=False
+        rank_col, ascending=False
     ).iloc[0]
     target_name = best_option["Option"]
     target_opt = option_by_name(target_name)
-    competitor_value = competitor_row["Net Worth Median ($)"]
+    competitor_value = competitor_row[rank_col]
 
     def evaluate_networth_with_fee(candidate_fee: float):
         modified = []
@@ -310,14 +337,14 @@ if best_option["Option"] != "Keep Current":
             fee_drag=fee_drag,
             current_payment=cur_payment
         )
-        return df.loc[df["Option"] == target_name, "Net Worth @H"].iloc[0]
+        return df.loc[df["Option"] == target_name, raw_col].iloc[0]
 
     if st.button("Solve break-even closing costs for preferred offer"):
         if target_opt is None:
             st.warning("Could not locate the preferred offer details.")
         else:
             current_fee = float(target_opt.get("fees", 0.0))
-            current_networth = float(best_option["Net Worth Median ($)"])
+            current_networth = float(best_option[rank_col])
 
             if current_networth <= competitor_value + 1e-6:
                 st.info("Preferred option is already no better than the alternative; adjust fees directly.")
