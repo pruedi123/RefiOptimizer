@@ -5,7 +5,15 @@ from .pmi import pmi_stream
 from .invest import side_portfolio
 from .utils import home_value_path
 
-def compare_refi_scenarios(current, options, factors, horizon_months=120, keep_payment=False, invest_savings=False):
+def compare_refi_scenarios(
+    current,
+    options,
+    factors,
+    horizon_months=120,
+    keep_payment=False,
+    invest_savings=False,
+    fee_drag=0.0,
+):
     """Skeleton comparator that you can expand.
 
     current: dict with keys balance, rate, remaining_term, home_value, home_appreciation, pmi_rate, pmi_basis, cancel_rule
@@ -13,7 +21,13 @@ def compare_refi_scenarios(current, options, factors, horizon_months=120, keep_p
     factors: placeholder (wire your factor series here per option.portfolio)
     keep_payment: if True, apply any payment savings versus the current loan as extra principal
     invest_savings: if True, invest monthly savings according to option.portfolio
+    fee_drag: annual fee drag (decimal) applied to investment returns
     """
+    fee_drag = float(fee_drag or 0.0)
+    if fee_drag < 0.0:
+        fee_drag = 0.0
+    fee_drag = min(fee_drag, 1.0)
+
     def pad_schedule(schedule, horizon):
         if len(schedule) >= horizon:
             return schedule.iloc[:horizon].copy()
@@ -46,6 +60,7 @@ def compare_refi_scenarios(current, options, factors, horizon_months=120, keep_p
         series = portfolios.get(portfolio_key)
         monthly = []
         idx = 0
+        fee_adjust = (1.0 - fee_drag) ** (1.0 / 12.0) if fee_drag > 0.0 else 1.0
         while len(monthly) < months:
             if series is not None and idx < len(series):
                 annual_factor = float(series.iloc[idx])
@@ -53,9 +68,10 @@ def compare_refi_scenarios(current, options, factors, horizon_months=120, keep_p
                 annual_factor = float(geo.get(portfolio_key, 1.0))
             idx += 1
             if annual_factor <= 0.0:
-                monthly_factor = 1.0
+                gross_monthly = 1.0
             else:
-                monthly_factor = annual_factor ** (1.0 / 12.0)
+                gross_monthly = annual_factor ** (1.0 / 12.0)
+            monthly_factor = gross_monthly * fee_adjust
             months_to_add = min(12, months - len(monthly))
             monthly.extend([monthly_factor] * months_to_add)
         return monthly[:months]

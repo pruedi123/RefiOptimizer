@@ -122,6 +122,16 @@ invest_savings = st.sidebar.checkbox(
     help="Direct any monthly savings into the selected portfolio once per month."
 )
 
+fee_drag_pct = st.sidebar.slider(
+    "Annual investment fee drag (%)",
+    min_value=0.0,
+    max_value=1.0,
+    value=0.0,
+    step=0.05,
+    help="Reduces side-portfolio returns to account for advisory or fund fees.",
+)
+fee_drag = fee_drag_pct / 100.0
+
 current = {
     "balance": cur_balance,
     "rate": cur_rate,
@@ -140,7 +150,8 @@ results = compare_refi_scenarios(
     factors=factor_data,
     horizon_months=int(horizon),
     keep_payment=apply_savings,
-    invest_savings=invest_savings
+    invest_savings=invest_savings,
+    fee_drag=fee_drag
 )
 
 baseline = results.loc[results["Option"] == "Keep Current"].iloc[0]
