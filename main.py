@@ -8,6 +8,8 @@ st.title("Refinance Optimizer (Starter)")
 
 st.markdown(
     """
+    Refinance Optimizer lets you benchmark new mortgage offers against your current loan. Enter your balance, rate, remaining term, home value, and actual monthly payment, then set an analysis horizon and PMI rules. Configure each offer with its rate, term, points, and closing costs (financed or paid cash), decide whether any monthly savings stay in cash, reduce principal, or get invested, and optionally add an annual fee drag to investment returns. The app pulls historical factor data to model invested savings and produces a comparison table—monthly payment, cash flow impact, PMI, total cost to horizon, side-account balance, and overall net-worth change—highlighting the option that leaves you richest by your chosen horizon.
+    
     Use this dashboard to benchmark refinance offers against your current mortgage.
     1. Update the **Current Loan** panel with your outstanding balance, rate, term, and actual monthly payment.
     2. Set the analysis horizon, PMI rules, and the portfolio you would use if investing payment savings.
