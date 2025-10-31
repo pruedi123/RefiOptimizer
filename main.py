@@ -376,6 +376,19 @@ else:
         "more than keeping the current loan)."
     )
 
+process_tooltip = (
+    "1. Capture the current loan’s payment, amortization, and PMI as the baseline.\n"
+    "2. Configure each refinance offer’s rate, term, and fees (with financing if selected).\n"
+    "3. Generate amortization schedules, PMI, and payment savings for every option.\n"
+    "4. Apply your savings rule:\n"
+    "   • Keep savings as cash — no extra principal or investing, savings stay liquid.\n"
+    "   • Apply savings to principal — funnel the payment gap back into the mortgage.\n"
+    "   • Invest savings monthly — drop residual upfront cash into a side account and invest the monthly savings.\n"
+    "5. Grow home value along the CPI path; apply the PMI cancellation rule.\n"
+    "6. For investing, sweep nominal savings into CPI-adjusted nominal return paths, producing median/75th/min outcomes.\n"
+    "7. Combine equity, side account, and cash to compute nominal and real net worth, then rank by your selected metric."
+)
+
 st.markdown(
     "#### How to read the table\n"
     "- **Monthly Payment**: what you would actually pay each month.\n"
@@ -383,7 +396,9 @@ st.markdown(
     "- **PMI First Month**: private mortgage insurance due in month one under that option.\n"
     "- **Cash Saved vs Current**: total dollars you still have because you paid less than the current loan.\n"
     "- **Invested Balance Median/75th/Min**: distribution of the side account built from payment savings (zero if you keep the cash).\n"
-    "- **Net Worth Median/75th/Min**: distribution of total wealth at the horizon, shown in both nominal dollars and real (inflation-adjusted) dollars with change columns versus keeping the current loan."
+    "- **Net Worth Median/75th/Min**: distribution of total wealth at the horizon, shown in both nominal dollars and real (inflation-adjusted) dollars with change columns versus keeping the current loan.\n"
+    f"<span style='cursor: help; text-decoration: underline dotted;' title=\"{process_tooltip}\">Hover for the full modeling workflow.</span>",
+    unsafe_allow_html=True
 )
 
 st.dataframe(summary.style.format(fmt), use_container_width=True)
