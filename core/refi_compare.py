@@ -132,9 +132,9 @@ def compare_refi_scenarios(
             if cpi_series is not None and i < len(cpi_series):
                 factor = float(cpi_series.iloc[i])
             else:
-                factor = last_valid
+                factor = 1.0
             if not np.isfinite(factor) or factor <= 0.0:
-                factor = last_valid
+                factor = 1.0
             cpi_factors.append(factor)
             cpi_levels.append(cpi_levels[-1] * factor)
             last_valid = factor

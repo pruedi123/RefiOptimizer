@@ -179,9 +179,9 @@ def prepare_portfolio_factors() -> Dict[str, Dict[str, object]]:
         factors = []
         last_cpi = 1.0
         for idx, value in enumerate(real):
-            cpi_factor = cpi_row_factors.iloc[idx] if idx < len(cpi_row_factors) else last_cpi
+            cpi_factor = cpi_row_factors.iloc[idx] if idx < len(cpi_row_factors) else 1.0
             if not np.isfinite(cpi_factor) or cpi_factor <= 0.0:
-                cpi_factor = last_cpi
+                cpi_factor = last_cpi if last_cpi > 0 else 1.0
             nominal = float(value) * float(cpi_factor)
             if nominal <= 0.0 or not np.isfinite(nominal):
                 nominal = 1.0
