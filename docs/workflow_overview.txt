@@ -1,0 +1,12 @@
+Modeling Workflow Overview
+
+1. Capture the current loan baseline: balance, rate, payment, and PMI schedule.
+2. Configure each refinance offer's rate, term, points, and fees (with financing as chosen).
+3. Generate amortization schedules, PMI streams, and monthly payment savings for the current loan and every offer.
+4. Apply the savings rule:
+   - Keep savings as cash – no extra principal or investing.
+   - Apply savings to principal – redirect the payment gap back into the mortgage.
+   - Invest savings monthly – invest upfront cash slack plus monthly savings in the selected portfolio.
+5. Grow home value along the CPI path and apply the chosen PMI cancellation trigger.
+6. For investing, run nominal return paths adjusted for CPI across rolling windows to capture median/75th/min outcomes.
+7. Combine equity, side-account value, and cash effects (in both nominal and real dollars) to compute net worth and rank options by the selected metric.
