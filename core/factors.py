@@ -177,16 +177,20 @@ def prepare_portfolio_factors() -> Dict[str, Dict[str, object]]:
             return real
 
         factors = []
-        last_cpi = 1.0
+        cpi_tail = cpi_row_factors.iloc[-len(real):] if len(cpi_row_factors) >= len(real) else None
         for idx, value in enumerate(real):
-            cpi_factor = cpi_row_factors.iloc[idx] if idx < len(cpi_row_factors) else 1.0
+            if cpi_tail is not None:
+                cpi_factor = float(cpi_tail.iloc[idx])
+            elif idx < len(cpi_row_factors):
+                cpi_factor = float(cpi_row_factors.iloc[idx])
+            else:
+                cpi_factor = 1.0
             if not np.isfinite(cpi_factor) or cpi_factor <= 0.0:
-                cpi_factor = last_cpi if last_cpi > 0 else 1.0
-            nominal = float(value) * float(cpi_factor)
+                cpi_factor = 1.0
+            nominal = float(value) * cpi_factor
             if nominal <= 0.0 or not np.isfinite(nominal):
                 nominal = 1.0
             factors.append(nominal)
-            last_cpi = cpi_factor
         return pd.Series(factors, index=real.index, name=label)
 
     for col in spx_aligned.columns:

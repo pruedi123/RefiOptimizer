@@ -123,11 +123,14 @@ def compare_refi_scenarios(
             if cpi_monthly is not None and "CPI_Factor_Month" in cpi_monthly.columns:
                 seq = cpi_monthly["CPI_Factor_Month"].dropna().astype(float)
                 if len(seq) > 0:
-                    cpi_series = seq.reset_index(drop=True)
+                    if len(seq) >= months - 1:
+                        cpi_series = seq.iloc[-(months - 1):].reset_index(drop=True)
+                    else:
+                        cpi_series = seq.reset_index(drop=True)
 
         cpi_factors = []
         cpi_levels = [1.0]
-        last_valid = fallback_monthly_factor
+        last_valid = 1.0
         for i in range(months - 1):
             if cpi_series is not None and i < len(cpi_series):
                 factor = float(cpi_series.iloc[i])
