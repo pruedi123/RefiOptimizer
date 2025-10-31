@@ -436,10 +436,10 @@ workflow_css = """
 .workflow-box {
   display: none;
   position: absolute;
-  left: 48px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: min(480px, 90vw);
+  left: -12px;
+  top: calc(100% + 12px);
+  transform: none;
+  width: min(560px, 92vw);
   background: #0e1117;
   color: #fff;
   border-radius: 10px;
