@@ -400,7 +400,106 @@ st.markdown(
     "- **Invested Balance Median/75th/Min**: distribution of the side account built from payment savings (zero if you keep the cash).\n"
     "- **Net Worth Median/75th/Min**: distribution of total wealth at the horizon, shown in both nominal dollars and real (inflation-adjusted) dollars with change columns versus keeping the current loan."
 )
-st.markdown(f'[Hover for the full modeling workflow.](# "{process_attr}")')
+
+workflow_css = """
+<style>
+.workflow-container {
+  margin: 12px 0 20px 0;
+}
+.workflow-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.workflow-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.workflow-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1f77b4;
+  color: #fff;
+  font-weight: 700;
+  font-size: 20px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.1s ease-in-out;
+}
+.workflow-button:hover {
+  transform: scale(1.05);
+}
+.workflow-box {
+  display: none;
+  position: absolute;
+  left: 48px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(480px, 90vw);
+  background: #0e1117;
+  color: #fff;
+  border-radius: 10px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255,255,255,0.3);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  z-index: 1000;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.workflow-button:hover .workflow-box,
+.workflow-button:focus .workflow-box {
+  display: block;
+}
+.workflow-steps {
+  margin: 0;
+  padding-left: 18px;
+}
+.workflow-steps li {
+  margin-bottom: 8px;
+}
+.workflow-steps li ul {
+  margin-top: 6px;
+  padding-left: 18px;
+}
+.workflow-steps li ul li {
+  margin-bottom: 4px;
+}
+</style>
+"""
+st.markdown(workflow_css, unsafe_allow_html=True)
+
+workflow_html = f"""
+<div class="workflow-container">
+  <div class="workflow-tooltip">
+    <span class="workflow-label">Modeling workflow</span>
+    <div class="workflow-button" tabindex="0">i
+      <div class="workflow-box">
+        <strong>How each scenario is evaluated</strong>
+        <ol class="workflow-steps">
+          <li>Capture the current loan baseline: balance, rate, payment, and PMI schedule.</li>
+          <li>Configure each refinance offer's rate, term, points, and fees (financed or paid cash).</li>
+          <li>Generate amortization schedules, PMI streams, and monthly payment savings for every option.</li>
+          <li>Apply the savings rule:
+            <ul>
+              <li>Keep savings as cash — no extra principal or investing.</li>
+              <li>Apply savings to principal — send the payment gap back into the mortgage.</li>
+              <li>Invest savings monthly — invest any upfront slack plus monthly savings.</li>
+            </ul>
+          </li>
+          <li>Grow home value along the CPI path and apply the PMI cancellation rule.</li>
+          <li>For investing, run nominal returns adjusted for CPI across rolling windows to get median/75th/min outcomes.</li>
+          <li>Combine equity, side account, and cash effects (nominal & real) to compute net worth and rank by your chosen metric.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+"""
+st.markdown(workflow_html, unsafe_allow_html=True)
 
 st.dataframe(summary.style.format(fmt), use_container_width=True)
 
