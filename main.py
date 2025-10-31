@@ -400,19 +400,19 @@ st.markdown(
 
 st.dataframe(summary.style.format(fmt), use_container_width=True)
 
-st.markdown(
-    "**Modeling workflow**\n"
-    "1. Capture the current loan baseline: balance, rate, payment, and PMI schedule.\n"
-    "2. Configure each refinance offer's rate, term, points, and fees (with financing if selected).\n"
-    "3. Generate amortization schedules, PMI streams, and monthly payment savings for every option.\n"
-    "4. Apply the savings rule:\n"
-    "   - Keep savings as cash — no extra principal or investing.\n"
-    "   - Apply savings to principal — send the payment gap back into the mortgage.\n"
-    "   - Invest savings monthly — invest any upfront slack plus monthly savings.\n"
-    "5. Grow home value along the CPI path and apply the PMI cancellation rule.\n"
-    "6. For investing, run nominal returns adjusted for CPI across rolling windows to capture median/75th/min outcomes.\n"
-    "7. Combine equity, side-account value, and cash effects (nominal and real) to compute net worth and rank by your chosen metric."
-)
+# st.markdown(
+#     "**Modeling workflow**\n"
+#     "1. Capture the current loan baseline: balance, rate, payment, and PMI schedule.\n"
+#     "2. Configure each refinance offer's rate, term, points, and fees (with financing if selected).\n"
+#     "3. Generate amortization schedules, PMI streams, and monthly payment savings for every option.\n"
+#     "4. Apply the savings rule:\n"
+#     "   - Keep savings as cash — no extra principal or investing.\n"
+#     "   - Apply savings to principal — send the payment gap back into the mortgage.\n"
+#     "   - Invest savings monthly — invest any upfront slack plus monthly savings.\n"
+#     "5. Grow home value along the CPI path and apply the PMI cancellation rule.\n"
+#     "6. For investing, run nominal returns adjusted for CPI across rolling windows to capture median/75th/min outcomes.\n"
+#     "7. Combine equity, side-account value, and cash effects (nominal and real) to compute net worth and rank by your chosen metric."
+# )
 
 def option_by_name(name: str):
     for opt in options:
