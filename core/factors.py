@@ -168,19 +168,42 @@ def prepare_portfolio_factors() -> Dict[str, Dict[str, object]]:
     portfolio_series: Dict[str, pd.Series] = {}
     portfolio_cagr: Dict[str, float] = {}
 
+    cpi_row_factors = cpi_monthly["CPI_Factor_Month"].dropna().astype(float)
+
+    def to_nominal(series: pd.Series, label: str) -> pd.Series:
+        """Convert a real return series to nominal using CPI if possible."""
+        real = series.dropna().astype(float)
+        if real.empty:
+            return real
+
+        factors = []
+        last_cpi = 1.0
+        for idx, value in enumerate(real):
+            cpi_factor = cpi_row_factors.iloc[idx] if idx < len(cpi_row_factors) else last_cpi
+            if not np.isfinite(cpi_factor) or cpi_factor <= 0.0:
+                cpi_factor = last_cpi
+            nominal = float(value) * float(cpi_factor)
+            if nominal <= 0.0 or not np.isfinite(nominal):
+                nominal = 1.0
+            factors.append(nominal)
+            last_cpi = cpi_factor
+        return pd.Series(factors, index=real.index, name=label)
+
     for col in spx_aligned.columns:
         if col == "end_month":
             continue
         series = spx_aligned[col].astype(float)
-        portfolio_series[col] = series.reset_index(drop=True)
-        portfolio_cagr[col] = geometric_mean(series)
+        nominal_series = to_nominal(series, col)
+        portfolio_series[col] = nominal_series.reset_index(drop=True)
+        portfolio_cagr[col] = geometric_mean(nominal_series)
 
     for col in global_aligned.columns:
         if col == "end_month":
             continue
         series = global_aligned[col].astype(float)
-        portfolio_series[col] = series.reset_index(drop=True)
-        portfolio_cagr[col] = geometric_mean(series)
+        nominal_series = to_nominal(series, col)
+        portfolio_series[col] = nominal_series.reset_index(drop=True)
+        portfolio_cagr[col] = geometric_mean(nominal_series)
 
     return {
         "cpi_monthly": cpi_monthly,

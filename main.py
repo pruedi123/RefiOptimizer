@@ -17,7 +17,7 @@ st.markdown(
     4. Choose how to handle payment savings—keep them as cash, prepay principal, or invest—and optionally apply an annual fee drag.
     5. Review the comparison table and highlights to see which path builds the most net worth by your horizon.
 
-    _Note: Home values automatically follow CPI inflation and PMI premiums are calculated on the current loan balance._
+    _Note: Home values automatically follow CPI inflation, PMI premiums use the current balance, and investment factor data is converted to nominal returns so the side account stays in step with your cash flows._
     """
 )
 
