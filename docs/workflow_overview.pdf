@@ -1,0 +1,39 @@
+%PDF-1.4
+1 0 obj <</Type /Catalog /Pages 2 0 R>> endobj
+2 0 obj <</Type /Pages /Kids [3 0 R] /Count 1>> endobj
+3 0 obj <</Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources <</Font <</F1 5 0 R>>>> /Contents 4 0 R>> endobj
+4 0 obj <</Length 1315>> stream
+BT /F1 12 Tf
+1 0 0 1 72 760 Tm (Modeling Workflow Overview) Tj
+1 0 0 1 72 746 Tm () Tj
+1 0 0 1 72 732 Tm (1. Capture the current loan baseline: balance, rate, payment, and PMI schedule.) Tj
+1 0 0 1 72 718 Tm (2. Configure each refinance offer's rate, term, points, and fees \\(with financing as chosen\\).) Tj
+1 0 0 1 72 704 Tm (3. Generate amortization schedules, PMI streams, and monthly payment savings for the current loan and every offer.) Tj
+1 0 0 1 72 690 Tm (4. Apply the savings rule:) Tj
+1 0 0 1 72 676 Tm (   ? Keep savings as cash ? no extra principal or investing.) Tj
+1 0 0 1 72 662 Tm (   ? Apply savings to principal ? redirect the payment gap back into the mortgage.) Tj
+1 0 0 1 72 648 Tm (   ? Invest savings monthly ? invest upfront cash slack plus monthly savings in the selected portfolio.) Tj
+1 0 0 1 72 634 Tm (5. Grow home value along the CPI path and apply the chosen PMI cancellation trigger.) Tj
+1 0 0 1 72 620 Tm (6. For investing, run nominal return paths adjusted for CPI across rolling windows to capture median/75th/min outcomes.) Tj
+1 0 0 1 72 606 Tm (7. Combine equity, side-account value, and cash effects \\(in both nominal and real dollars\\) to compute net worth and rank options by the selected metric.) Tj
+1 0 0 1 72 592 Tm () Tj
+1 0 0 1 72 578 Tm (Refinance Optimizer) Tj
+ET
+endstream endobj
+5 0 obj <</Type /Font /Subtype /Type1 /BaseFont /Helvetica>> endobj
+xref
+0 9
+0000000000 65535 f 
+0000000000 00000 n 
+0000000009 00000 n 
+0000000056 00000 n 
+0000000111 00000 n 
+0000000231 00000 n 
+0000000263 00000 n 
+0000001579 00000 n 
+0000001596 00000 n 
+
+trailer <</Size 9 /Root 1 0 R>>
+startxref
+1664
+%%EOF

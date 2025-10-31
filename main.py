@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import streamlit as st
 import pandas as pd
 from core.refi_compare import compare_refi_scenarios
@@ -32,7 +34,7 @@ def _monthly_payment(principal: float, annual_rate: float, term_months: int) -> 
 st.sidebar.header("Current Loan")
 cur_balance = st.sidebar.slider("Current balance ($)", min_value=0.0, max_value=2000000.0, value=700000.0, step=1000.0)
 cur_rate = st.sidebar.slider("Current rate (APR, %)", min_value=0.0, max_value=20.0, value=8.55, step=0.01) / 100.0
-cur_term = st.sidebar.slider("Remaining term (months)", min_value=1, max_value=480, value=360, step=1)
+cur_term = st.sidebar.slider("Remaining term (months)", min_value=1, max_value=360, value=360, step=1)
 home_value = st.sidebar.slider("Home value ($)", min_value=0.0, max_value=5000000.0, value=875000.0, step=1000.0)
 
 default_cur_payment = _monthly_payment(cur_balance, cur_rate, int(cur_term))
@@ -376,21 +378,6 @@ else:
         "more than keeping the current loan)."
     )
 
-process_steps = [
-    "1. Capture the current loan baseline: balance, rate, payment, and PMI schedule.",
-    "2. Configure each refinance offer's rate, term, and fees (with financing if selected).",
-    "3. Generate amortization schedules, PMI, and payment savings for every option.",
-    "4. Apply your savings rule:",
-    "   - Keep savings as cash - no extra principal or investing, savings stay liquid.",
-    "   - Apply savings to principal - funnel the payment gap back into the mortgage.",
-    "   - Invest savings monthly - drop residual upfront cash into a side account and invest the monthly savings.",
-    "5. Grow home value along the CPI path and apply the PMI cancellation rule.",
-    "6. For investing, sweep nominal savings through CPI-adjusted nominal return paths to produce median/75th/min outcomes.",
-    "7. Combine equity, side account, and cash (nominal & real) to compute net worth, then rank by the selected metric."
-]
-process_tooltip = "\n".join(process_steps)
-process_attr = process_tooltip.replace('"', "&quot;").replace("\n", "&#10;")
-
 st.markdown(
     "#### How to read the table\n"
     "- **Monthly Payment**: what you would actually pay each month.\n"
@@ -400,106 +387,18 @@ st.markdown(
     "- **Invested Balance Median/75th/Min**: distribution of the side account built from payment savings (zero if you keep the cash).\n"
     "- **Net Worth Median/75th/Min**: distribution of total wealth at the horizon, shown in both nominal dollars and real (inflation-adjusted) dollars with change columns versus keeping the current loan."
 )
-
-workflow_css = """
-<style>
-.workflow-container {
-  margin: 12px 0 20px 0;
-}
-.workflow-tooltip {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-}
-.workflow-label {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-.workflow-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #1f77b4;
-  color: #fff;
-  font-weight: 700;
-  font-size: 20px;
-  cursor: pointer;
-  position: relative;
-  transition: transform 0.1s ease-in-out;
-}
-.workflow-button:hover {
-  transform: scale(1.05);
-}
-.workflow-box {
-  display: none;
-  position: absolute;
-  left: -12px;
-  top: calc(100% + 12px);
-  transform: none;
-  width: min(560px, 92vw);
-  background: #0e1117;
-  color: #fff;
-  border-radius: 10px;
-  padding: 18px 20px;
-  border: 1px solid rgba(255,255,255,0.3);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.4);
-  z-index: 1000;
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-.workflow-button:hover .workflow-box,
-.workflow-button:focus .workflow-box {
-  display: block;
-}
-.workflow-steps {
-  margin: 0;
-  padding-left: 18px;
-}
-.workflow-steps li {
-  margin-bottom: 8px;
-}
-.workflow-steps li ul {
-  margin-top: 6px;
-  padding-left: 18px;
-}
-.workflow-steps li ul li {
-  margin-bottom: 4px;
-}
-</style>
-"""
-st.markdown(workflow_css, unsafe_allow_html=True)
-
-workflow_html = f"""
-<div class="workflow-container">
-  <div class="workflow-tooltip">
-    <span class="workflow-label">Modeling workflow</span>
-    <div class="workflow-button" tabindex="0">i
-      <div class="workflow-box">
-        <strong>How each scenario is evaluated</strong>
-        <ol class="workflow-steps">
-          <li>Capture the current loan baseline: balance, rate, payment, and PMI schedule.</li>
-          <li>Configure each refinance offer's rate, term, points, and fees (financed or paid cash).</li>
-          <li>Generate amortization schedules, PMI streams, and monthly payment savings for every option.</li>
-          <li>Apply the savings rule:
-            <ul>
-              <li>Keep savings as cash — no extra principal or investing.</li>
-              <li>Apply savings to principal — send the payment gap back into the mortgage.</li>
-              <li>Invest savings monthly — invest any upfront slack plus monthly savings.</li>
-            </ul>
-          </li>
-          <li>Grow home value along the CPI path and apply the PMI cancellation rule.</li>
-          <li>For investing, run nominal returns adjusted for CPI across rolling windows to get median/75th/min outcomes.</li>
-          <li>Combine equity, side account, and cash effects (nominal & real) to compute net worth and rank by your chosen metric.</li>
-        </ol>
-      </div>
-    </div>
-  </div>
-</div>
-"""
-st.markdown(workflow_html, unsafe_allow_html=True)
+pdf_path = Path("docs/workflow_overview.pdf")
+if pdf_path.exists():
+    with pdf_path.open("rb") as pdf_file:
+        pdf_bytes = pdf_file.read()
+    st.download_button(
+        "Download modeling workflow (PDF)",
+        data=pdf_bytes,
+        file_name="RefiOptimizer_Workflow.pdf",
+        mime="application/pdf",
+        type="primary"
+    )
+    st.markdown(f"[Open the workflow summary (PDF)]({pdf_path.as_posix()})")
 
 st.dataframe(summary.style.format(fmt), use_container_width=True)
 
