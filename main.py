@@ -398,10 +398,9 @@ st.markdown(
     "- **PMI First Month**: private mortgage insurance due in month one under that option.\n"
     "- **Cash Saved vs Current**: total dollars you still have because you paid less than the current loan.\n"
     "- **Invested Balance Median/75th/Min**: distribution of the side account built from payment savings (zero if you keep the cash).\n"
-    "- **Net Worth Median/75th/Min**: distribution of total wealth at the horizon, shown in both nominal dollars and real (inflation-adjusted) dollars with change columns versus keeping the current loan.\n"
-    f"<span style='cursor: help; text-decoration: underline dotted;' title=\"{process_attr}\">Hover for the full modeling workflow.</span>",
-    unsafe_allow_html=True
+    "- **Net Worth Median/75th/Min**: distribution of total wealth at the horizon, shown in both nominal dollars and real (inflation-adjusted) dollars with change columns versus keeping the current loan."
 )
+st.markdown(f'[Hover for the full modeling workflow.](# "{process_attr}")')
 
 st.dataframe(summary.style.format(fmt), use_container_width=True)
 
