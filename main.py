@@ -175,6 +175,13 @@ savings_mode = st.sidebar.radio(
 apply_savings = savings_mode == "Apply savings to principal"
 invest_savings = savings_mode == "Invest savings monthly"
 
+basis_choice = st.sidebar.radio(
+    "Rank net worth using",
+    options=["Nominal dollars", "Real dollars (inflation-adjusted)"],
+    index=0,
+    help="Nominal uses raw dollars; real divides by cumulative CPI so results are in today’s purchasing power."
+)
+
 metric_choice = st.sidebar.radio(
     "Optimize for",
     options=["Median net worth", "Minimum net worth"],
@@ -225,12 +232,27 @@ if "Net Worth 75th @H" not in summary.columns:
     summary["Net Worth 75th @H"] = summary["Net Worth @H"]
 if "Net Worth Min @H" not in summary.columns:
     summary["Net Worth Min @H"] = summary["Net Worth @H"]
+if "Net Worth Real @H" not in summary.columns:
+    summary["Net Worth Real @H"] = summary["Net Worth @H"]
+if "Net Worth Real 75th @H" not in summary.columns:
+    summary["Net Worth Real 75th @H"] = summary["Net Worth Real @H"]
+if "Net Worth Real Min @H" not in summary.columns:
+    summary["Net Worth Real Min @H"] = summary["Net Worth Real @H"]
+if "Side Real @H" not in summary.columns:
+    summary["Side Real @H"] = summary["Side @H"]
+if "Side 75th Real @H" not in summary.columns:
+    summary["Side 75th Real @H"] = summary["Side 75th @H"]
+if "Side Min Real @H" not in summary.columns:
+    summary["Side Min Real @H"] = summary["Side Min @H"]
 
 baseline = summary.loc[summary["Option"] == "Keep Current"].iloc[0]
 summary["Monthly Payment Change ($)"] = summary["Monthly Payment"] - baseline["Monthly Payment"]
 summary["Net Worth Change vs Current ($)"] = summary["Net Worth @H"] - baseline["Net Worth @H"]
 summary["Net Worth 75th Change vs Current ($)"] = summary["Net Worth 75th @H"] - baseline["Net Worth 75th @H"]
 summary["Net Worth Min Change vs Current ($)"] = summary["Net Worth Min @H"] - baseline["Net Worth Min @H"]
+summary["Net Worth Real Change vs Current ($)"] = summary["Net Worth Real @H"] - baseline["Net Worth Real @H"]
+summary["Net Worth Real 75th Change vs Current ($)"] = summary["Net Worth Real 75th @H"] - baseline["Net Worth Real 75th @H"]
+summary["Net Worth Real Min Change vs Current ($)"] = summary["Net Worth Real Min @H"] - baseline["Net Worth Real Min @H"]
 
 summary = summary[[
     "Option",
@@ -242,12 +264,21 @@ summary = summary[[
     "Side @H",
     "Side 75th @H",
     "Side Min @H",
+    "Side Real @H",
+    "Side 75th Real @H",
+    "Side Min Real @H",
     "Net Worth @H",
     "Net Worth 75th @H",
     "Net Worth Min @H",
+    "Net Worth Real @H",
+    "Net Worth Real 75th @H",
+    "Net Worth Real Min @H",
     "Net Worth Change vs Current ($)",
     "Net Worth 75th Change vs Current ($)",
-    "Net Worth Min Change vs Current ($)"
+    "Net Worth Min Change vs Current ($)",
+    "Net Worth Real Change vs Current ($)",
+    "Net Worth Real 75th Change vs Current ($)",
+    "Net Worth Real Min Change vs Current ($)"
 ]].rename(columns={
     "Monthly Payment": "Monthly Payment ($/mo)",
     "Monthly Payment Change ($)": "Change vs Current ($/mo)",
@@ -257,12 +288,21 @@ summary = summary[[
     "Side @H": "Invested Balance Median ($)",
     "Side 75th @H": "Invested Balance 75th ($)",
     "Side Min @H": "Invested Balance Min ($)",
+    "Side Real @H": "Invested Balance Median (Real $)",
+    "Side 75th Real @H": "Invested Balance 75th (Real $)",
+    "Side Min Real @H": "Invested Balance Min (Real $)",
     "Net Worth @H": "Net Worth Median ($)",
     "Net Worth 75th @H": "Net Worth 75th ($)",
     "Net Worth Min @H": "Net Worth Min ($)",
     "Net Worth Change vs Current ($)": "Net Worth Median Change vs Current ($)",
     "Net Worth 75th Change vs Current ($)": "Net Worth 75th Change vs Current ($)",
     "Net Worth Min Change vs Current ($)": "Net Worth Min Change vs Current ($)",
+    "Net Worth Real @H": "Net Worth Median (Real $)",
+    "Net Worth Real 75th @H": "Net Worth 75th (Real $)",
+    "Net Worth Real Min @H": "Net Worth Min (Real $)",
+    "Net Worth Real Change vs Current ($)": "Net Worth Median Change vs Current (Real $)",
+    "Net Worth Real 75th Change vs Current ($)": "Net Worth 75th Change vs Current (Real $)",
+    "Net Worth Real Min Change vs Current ($)": "Net Worth Min Change vs Current (Real $)",
 })
 
 fmt = {
@@ -274,29 +314,53 @@ fmt = {
     "Invested Balance Median ($)": "${:,.0f}",
     "Invested Balance 75th ($)": "${:,.0f}",
     "Invested Balance Min ($)": "${:,.0f}",
+    "Invested Balance Median (Real $)": "${:,.0f}",
+    "Invested Balance 75th (Real $)": "${:,.0f}",
+    "Invested Balance Min (Real $)": "${:,.0f}",
     "Net Worth Median ($)": "${:,.0f}",
     "Net Worth 75th ($)": "${:,.0f}",
     "Net Worth Min ($)": "${:,.0f}",
     "Net Worth Median Change vs Current ($)": "${:,.0f}",
     "Net Worth 75th Change vs Current ($)": "${:,.0f}",
     "Net Worth Min Change vs Current ($)": "${:,.0f}",
+    "Net Worth Median (Real $)": "${:,.0f}",
+    "Net Worth 75th (Real $)": "${:,.0f}",
+    "Net Worth Min (Real $)": "${:,.0f}",
+    "Net Worth Median Change vs Current (Real $)": "${:,.0f}",
+    "Net Worth 75th Change vs Current (Real $)": "${:,.0f}",
+    "Net Worth Min Change vs Current (Real $)": "${:,.0f}",
 }
 
-metric_map = {
-    "Median net worth": {
+basis_key = "Real" if basis_choice.startswith("Real") else "Nominal"
+metric_key = "Min" if metric_choice.startswith("Minimum") else "Median"
+
+metric_config = {
+    ("Nominal", "Median"): {
         "summary_col": "Net Worth Median ($)",
         "change_col": "Net Worth Median Change vs Current ($)",
         "raw_col": "Net Worth @H",
-        "label": "median"
+        "label": "nominal median"
     },
-    "Minimum net worth": {
+    ("Nominal", "Min"): {
         "summary_col": "Net Worth Min ($)",
         "change_col": "Net Worth Min Change vs Current ($)",
         "raw_col": "Net Worth Min @H",
-        "label": "minimum"
+        "label": "nominal minimum"
+    },
+    ("Real", "Median"): {
+        "summary_col": "Net Worth Median (Real $)",
+        "change_col": "Net Worth Median Change vs Current (Real $)",
+        "raw_col": "Net Worth Real @H",
+        "label": "real (inflation-adjusted) median"
+    },
+    ("Real", "Min"): {
+        "summary_col": "Net Worth Min (Real $)",
+        "change_col": "Net Worth Min Change vs Current (Real $)",
+        "raw_col": "Net Worth Real Min @H",
+        "label": "real (inflation-adjusted) minimum"
     },
 }
-metric_info = metric_map.get(metric_choice, metric_map["Median net worth"])
+metric_info = metric_config[(basis_key, metric_key)]
 rank_col = metric_info["summary_col"]
 change_col = metric_info["change_col"]
 raw_col = metric_info["raw_col"]
@@ -319,7 +383,7 @@ st.markdown(
     "- **PMI First Month**: private mortgage insurance due in month one under that option.\n"
     "- **Cash Saved vs Current**: total dollars you still have because you paid less than the current loan.\n"
     "- **Invested Balance Median/75th/Min**: distribution of the side account built from payment savings (zero if you keep the cash).\n"
-    "- **Net Worth Median/75th/Min**: distribution of total wealth at the horizon after equity, fees, and saved cash, plus the change columns versus keeping the current loan."
+    "- **Net Worth Median/75th/Min**: distribution of total wealth at the horizon, shown in both nominal dollars and real (inflation-adjusted) dollars with change columns versus keeping the current loan."
 )
 
 st.dataframe(summary.style.format(fmt), use_container_width=True)

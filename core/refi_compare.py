@@ -115,32 +115,37 @@ def compare_refi_scenarios(
 
     def build_home_value_path(months: int):
         if months <= 0:
-            return home_value_path(base_home_value, home_appreciation, 1)
+            return home_value_path(base_home_value, home_appreciation, 1), pd.Series([1.0])
 
-        cpi_factors = None
+        cpi_series = None
         if factors:
             cpi_monthly = factors.get("cpi_monthly")
             if cpi_monthly is not None and "CPI_Factor_Month" in cpi_monthly.columns:
-                series = cpi_monthly["CPI_Factor_Month"].dropna().astype(float)
-                if len(series) > 0:
-                    cpi_factors = []
-                    last_valid = fallback_monthly_factor
-                    for i in range(months - 1):
-                        if i < len(series):
-                            factor = float(series.iloc[i])
-                        else:
-                            factor = last_valid
-                        if not np.isfinite(factor) or factor <= 0.0:
-                            factor = last_valid
-                        cpi_factors.append(factor)
-                        last_valid = factor
+                seq = cpi_monthly["CPI_Factor_Month"].dropna().astype(float)
+                if len(seq) > 0:
+                    cpi_series = seq.reset_index(drop=True)
 
-        return home_value_path(
+        cpi_factors = []
+        cpi_levels = [1.0]
+        last_valid = fallback_monthly_factor
+        for i in range(months - 1):
+            if cpi_series is not None and i < len(cpi_series):
+                factor = float(cpi_series.iloc[i])
+            else:
+                factor = last_valid
+            if not np.isfinite(factor) or factor <= 0.0:
+                factor = last_valid
+            cpi_factors.append(factor)
+            cpi_levels.append(cpi_levels[-1] * factor)
+            last_valid = factor
+
+        hv_series = home_value_path(
             base_home_value,
             home_appreciation,
             months,
             monthly_factors=cpi_factors
         )
+        return hv_series, pd.Series(cpi_levels)
 
     def pad_schedule(schedule, horizon):
         if len(schedule) >= horizon:
@@ -174,7 +179,10 @@ def compare_refi_scenarios(
         payment=current_payment
     )
     sched_cur = pad_schedule(sched_cur, horizon_months)
-    home_values = build_home_value_path(horizon_months)
+    home_values, cpi_levels = build_home_value_path(horizon_months)
+    cpi_horizon = float(cpi_levels.iloc[-1]) if len(cpi_levels) else 1.0
+    if not np.isfinite(cpi_horizon) or cpi_horizon <= 0.0:
+        cpi_horizon = 1.0
     hv = home_values
     pmi_cur = pmi_stream(sched_cur["Balance"].values, hv.values, current["pmi_rate"], pmi_basis, current["cancel_rule"])
     total_cur = (sched_cur["Payment"] + sched_cur["Extra"]).sum() + pmi_cur.sum()
@@ -182,6 +190,7 @@ def compare_refi_scenarios(
     side_cur = 0.0  # no side portfolio in baseline by default
     cash_delta_cur = 0.0
     networth_cur = float(equity_cur + side_cur + cash_delta_cur)
+    networth_cur_real = float(networth_cur / cpi_horizon)
     base_payment = float(sched_cur.iloc[0]["Payment"] + sched_cur.iloc[0]["Extra"])
 
     results.append({
@@ -197,6 +206,12 @@ def compare_refi_scenarios(
         "Net Worth @H": float(networth_cur),
         "Net Worth 75th @H": float(networth_cur),
         "Net Worth Min @H": float(networth_cur),
+        "Side Real @H": float(side_cur / cpi_horizon),
+        "Side 75th Real @H": float(side_cur / cpi_horizon),
+        "Side Min Real @H": float(side_cur / cpi_horizon),
+        "Net Worth Real @H": networth_cur_real,
+        "Net Worth Real 75th @H": networth_cur_real,
+        "Net Worth Real Min @H": networth_cur_real,
     })
 
     # Pre-calc fee info for investment and financing logic
@@ -267,6 +282,10 @@ def compare_refi_scenarios(
         side_median = float(np.median(side_array))
         side_p75 = float(np.percentile(side_array, 75))
         side_min = float(np.min(side_array))
+        side_real_array = side_array / cpi_horizon
+        side_real_median = float(np.median(side_real_array))
+        side_real_p75 = float(np.percentile(side_real_array, 75))
+        side_real_min = float(np.min(side_real_array))
 
         cash_effect = 0.0 if invest_savings else cash_delta
         networth_values = [
@@ -277,6 +296,10 @@ def compare_refi_scenarios(
         networth_median = float(np.median(networth_array))
         networth_p75 = float(np.percentile(networth_array, 75))
         networth_min = float(np.min(networth_array))
+        networth_real_array = networth_array / cpi_horizon
+        networth_real_median = float(np.median(networth_real_array))
+        networth_real_p75 = float(np.percentile(networth_real_array))
+        networth_real_min = float(np.min(networth_real_array))
 
         results.append({
             "Option": opt["name"],
@@ -291,6 +314,12 @@ def compare_refi_scenarios(
             "Net Worth @H": networth_median,
             "Net Worth 75th @H": networth_p75,
             "Net Worth Min @H": networth_min,
+            "Side Real @H": side_real_median,
+            "Side 75th Real @H": side_real_p75,
+            "Side Min Real @H": side_real_min,
+            "Net Worth Real @H": networth_real_median,
+            "Net Worth Real 75th @H": networth_real_p75,
+            "Net Worth Real Min @H": networth_real_min,
         })
 
     return pd.DataFrame(results)
