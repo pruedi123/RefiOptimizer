@@ -17,7 +17,19 @@ st.markdown(
     4. Choose how to handle payment savings—keep them as cash, prepay principal, or invest—and optionally apply an annual fee drag.
     5. Review the comparison table and highlights to see which path builds the most net worth by your horizon.
 
-    _Note: Home values automatically follow CPI inflation, PMI premiums use the current balance, and investment factor data is converted to nominal returns so the side account stays in step with your cash flows._
+_Note: Home values automatically follow CPI inflation, PMI premiums use the current balance, and investment factor data is converted to nominal returns so the side account stays in step with your cash flows._
+
+**Modeling workflow**
+1. Capture the current loan baseline: balance, rate, payment, and PMI schedule.
+2. Configure each refinance offer's rate, term, points, and fees (with financing if selected).
+3. Generate amortization schedules, PMI streams, and monthly payment savings for every option.
+4. Apply the savings rule:
+   - Keep savings as cash — no extra principal or investing.
+   - Apply savings to principal — send the payment gap back into the mortgage.
+   - Invest savings monthly — invest any upfront slack plus monthly savings.
+5. Grow home value along the CPI path and apply the PMI cancellation rule.
+6. For investing, run nominal returns adjusted for CPI across rolling windows to capture median/75th/min outcomes.
+7. Combine equity, side-account value, and cash effects (nominal and real) to compute net worth and rank by your chosen metric.
     """
 )
 
