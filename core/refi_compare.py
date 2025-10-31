@@ -298,7 +298,7 @@ def compare_refi_scenarios(
         networth_min = float(np.min(networth_array))
         networth_real_array = networth_array / cpi_horizon
         networth_real_median = float(np.median(networth_real_array))
-        networth_real_p75 = float(np.percentile(networth_real_array))
+        networth_real_p75 = float(np.percentile(networth_real_array, 75))
         networth_real_min = float(np.min(networth_real_array))
 
         results.append({
